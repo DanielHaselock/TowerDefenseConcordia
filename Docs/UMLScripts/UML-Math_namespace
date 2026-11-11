@@ -1,0 +1,78 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Math" {
+  class Vector2D {
+    +PrintDebug(): void
+  }
+
+  class Color {
+    -r: int
+    -g: int
+    -b: int
+    -a: int
+    +Color()
+    +Color(r: int, g: int, b: int, a: int)
+    +setColor(r: int, g: int, b: int, a: int): void
+    +R(): int
+    +G(): int
+    +B(): int
+    +A(): int
+  }
+
+  class "Vec3<T>" as Vec3 {
+    -x: T
+    -y: T
+    -z: T
+    +unitVal: static const T
+    +zero: static const Vec3<T>
+    +up: static const Vec3<T>
+    +down: static const Vec3<T>
+    +left: static const Vec3<T>
+    +right: static const Vec3<T>
+    +forward: static const Vec3<T>
+    +backward: static const Vec3<T>
+    +error: static const Vec3<T>
+    +Vec3()
+    +Vec3(x: T, y: T, z: T)
+    +X(): T&
+    +Y(): T&
+    +Z(): T&
+    +length() const: T
+    +dotProduct(vec3: const Vec3<T>&) const: T
+    +crossProduct(vec3: const Vec3<T>&) const: Vec3<T>
+    +normalize(): void
+  }
+
+  class "Vec4<T>" as Vec4 {
+    -x: T
+    -y: T
+    -z: T
+    -w: T
+    +unitVal: static const T
+    +zero: static const Vec4<T>
+    +up: static const Vec4<T>
+    +down: static const Vec4<T>
+    +left: static const Vec4<T>
+    +right: static const Vec4<T>
+    +forward: static const Vec4<T>
+    +backward: static const Vec4<T>
+    +Vec4()
+    +Vec4(x: T, y: T, z: T, w: T = 0)
+    +Vec4(vec3: const Vec3<T>&, w: float = 0)
+    +X(): T&
+    +Y(): T&
+    +Z(): T&
+    +W(): T&
+    +length() const: T
+    +dotProduct(vec4: const Vec4<T>&) const: T
+    +crossProduct(vec4: const Vec4<T>&) const: Vec4<T>
+    +normalize(): void
+    +homogenize(): void
+  }
+
+  Vec4 ..> Vec3 : Vec4<T> constructed from Vec3<T>
+}
+
+@enduml

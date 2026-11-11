@@ -1,0 +1,45 @@
+@startuml
+title Map Editor - Backend 
+
+skinparam classAttributeIconSize 0
+hide empty members
+skinparam linetype ortho
+
+package "Game" {
+  enum "Map::InitialLayout" as InitialLayout {
+    Random
+    Scenery
+  }
+
+  class Cell <<struct>> {
+    +type: CellType
+    +hasTower: bool
+    +tower: Tower*
+  }
+
+  class Tower
+
+  class Map  {
+    +Map(rows: int, cols: int, initialLayout: InitialLayout = Random)
+    +setCellType(row: int, column: int, type: CellType): void
+    +isValid(): bool
+    -assignCellType(row: int, column: int, type: CellType): void
+    -checkCoordinates(row: int, column: int) const: void
+    -findEntryAndExit(entry, exit): bool
+    -rows: int
+    -cols: int
+    -cells: vector<vector<Cell>>
+    -correctPath: vector<int>
+  }
+
+  class "Observable" as MapObservable
+  class "Observer" as MapObserver
+
+  MapObservable <|-- Map
+  Map *-- "1..*" Cell : grid
+  Cell --> "0..1" Tower : occupies
+  Map ..> InitialLayout : selects blank or random layout
+  MapObservable ..> MapObserver : notifies on edits
+}
+
+@enduml

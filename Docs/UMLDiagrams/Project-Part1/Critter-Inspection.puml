@@ -1,0 +1,95 @@
+@startuml
+title Critter Inspection
+
+skinparam classAttributeIconSize 0
+hide empty members
+skinparam linetype ortho
+
+package "App" {
+  class GameManager {
+    -updateCritterInspection(critter: Game::Critter*): void
+    -clearCritterSelection(): void
+    -showCritterSelectedSprite(critter: Game::Critter*): void
+    -restoreCritterSprite(critter: Game::Critter*): void
+    -currentCritterSelected: Game::Critter*
+    -critterOriginalTexture: Renderer::spriteSheetTexture*
+    -gameRenderer: Renderer::GameRenderer
+    -inspectCritterLevelLabel: Renderer::NumberLabel*
+    -inspectCritterHpLabel: Renderer::NumberLabel*
+    -inspectCritterMaxHpLabel: Renderer::NumberLabel*
+    -inspectCritterSpeedLabel: Renderer::NumberLabel*
+    -inspectCritterRewardLabel: Renderer::NumberLabel*
+    -inspectCritterStrengthLabel: Renderer::NumberLabel*
+  }
+}
+
+package "Game" {
+  abstract class Critter {
+    +getType() const: string
+    +getLevel() const: int
+    +getHitPoints() const: int
+    +getMaxHitPoints() const: int
+    +getSpeed() const: int
+    +getReward() const: int
+    +getStrength() const: int
+    +getPixelPosx() const: float
+    +getPixelPosy() const: float
+    +getTexture(): Renderer::spriteSheetTexture*
+    +setTexture(texture: Renderer::spriteSheetTexture*): void
+  }
+
+  class WalkerCritter
+  class SpeedyCritter
+  class BossCritter
+
+  Critter <|-- WalkerCritter
+  Critter <|-- SpeedyCritter
+  Critter <|-- BossCritter
+}
+
+package "Renderer" {
+  class GameRenderer {
+    +getInspectWalkerTexture(): Texture*
+    +getInspectSpeedyTexture(): Texture*
+    +getInspectBossTexture(): Texture*
+    +getSelectedWalkerSprite(): spriteSheetTexture*
+    +getSelectedSpeedySprite(): spriteSheetTexture*
+    +getSelectedBossSprite(): spriteSheetTexture*
+    -inspectWalkerTexture: InspectPanel*
+    -inspectSpeedyTexture: InspectPanel*
+    -inspectBossTexture: InspectPanel*
+    -selectedWalkerSprite: spriteSheetTexture*
+    -selectedSpeedySprite: spriteSheetTexture*
+    -selectedBossSprite: spriteSheetTexture*
+  }
+
+  class InspectPanel {
+    +InspectPanel(x, y, w, h, title, accent, rows)
+    +Render(renderer: SDL_Renderer*): void
+    -m_title: string
+    -m_rows: vector<Row>
+  }
+
+  class NumberLabel {
+    +setValue(value: int): void
+    +setPosition(x: int, y: int): void
+    +setRender(render: bool): void
+    -m_value: int
+  }
+
+  class Window {
+    +addInspectPanel(x, y, w, h, title, accent, rows): InspectPanel*
+    +addNumberLabel(x: int, y: int, value: int): NumberLabel*
+  }
+
+}
+
+GameManager *-- "1" GameRenderer : uses for panel and sprite rendering
+GameManager --> "0..1" Critter : inspects and follows
+
+GameRenderer --> "3" InspectPanel : walker, speedy, boss panels
+Window *-- "3" InspectPanel : owns
+Window *-- "6" NumberLabel : owns
+
+
+@enduml

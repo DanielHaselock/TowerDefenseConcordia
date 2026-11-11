@@ -1,0 +1,268 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty members
+skinparam linetype ortho
+
+package "Renderer" {
+  abstract class "AbstractRenderable" as AbstractRenderable {
+    +~AbstractRenderable()
+    +Render(::SDL_Renderer* p_renderer): void
+    +setRender(bool p_render): void
+    +shouldRender() const: bool
+    #bool m_shouldRender
+  }
+  class "Button" as Button {
+    +Button()
+    +Button(Texture* texture)
+    +~Button()
+    +setPosition(int x, int y): void
+    +setScale(int w, int h): void
+    +handlePress(): void
+    +changebutton(bool inside): void
+    +changeTexture(): void
+    +addTexture(Texture* p_newTexture): void
+    +checkSpriteSheetTexture(int x, int y): bool
+    +checkRegularTexture(int x, int y): bool
+    +setTexture(Texture* p_text): void
+    +setUseSpriteSheet(bool p_sprite): void
+    +setButtonActive(bool p_active): void
+    +getCurrentTexture(): Texture*
+    +bool m_active
+    +bool m_pressed
+    -int m_x
+    -int m_y
+    -int m_w
+    -int m_h
+    -Texture* m_currentTexture
+    -vector<Texture*> m_listTextures
+    -ButtonSprite mCurrentSprite
+    -bool m_useSpriteSheet
+  }
+  class "Event<T>" as Event {
+    +void(Args&...): list<function<
+    +subscribe(function<void(Args&...): size_t
+    +remove(size_t pPos): void
+    +dispatch(Args&... pArgs): void
+  }
+  class "GameRenderer" as GameRenderer {
+    +CreateGame(Window& window, int rows, int columns, vector<int>& cellValues): void
+    +MainLoop(int mouseX, int mouseY, float deltatime): void
+    +getClosestTile(): RendererMap*
+    +GetAmountMenuSprites(): int
+    +setSpriteSheetRender(int numb, bool render): void
+    +getSpriteRect(int numb): SDL_FRect
+    +handleMouseMove(int x, int y): void
+    +handleMouseRelease(int x, int y, int spritePressed): void
+    +placeTurret(int spriteToShow): void
+    +upgradeTurret(int tileNumb): Renderer::spriteSheetTexture*
+    +removeTurret(int tileNumb): void
+    +GetClosestCellNumber(int x, int y): int
+    +setAOECell(int row, int col, int damageOverTime): void
+    +SpawnWalker(Window& window): spriteSheetTexture*
+    +SpawnSpeed(Window& window): spriteSheetTexture*
+    +SpawnBoss(Window& window): spriteSheetTexture*
+    +SpawnBullet(Window& window): spriteSheetTexture*
+    +getCancelTexture(): Renderer::Texture*
+    +getUpgradeTexture(): Renderer::Texture*
+    +getGenerator(): MapGenerator*
+    +~GameRenderer()
+    -MapGenerator* mapGenerator
+    -Renderer::Texture* mainTexture
+    -Renderer::Texture* cancelTexture
+    -Renderer::Texture* upgradeTexture
+    -vector<Renderer::spriteSheetTexture*> critterSprites
+    -vector<Renderer::spriteSheetTexture*> bulletSprites
+    -RendererMap* currClosestTile
+  }
+  class "MapGenerator" as MapGenerator {
+    +MapGenerator(Window& window, int startingPixel, int p_rows, int p_columns, int max_width, int max_height, vector<int>& cellValues)
+    +CalculateTileWidth(int p_columns, int startingPixel, int max_width): int
+    +CalculateTileHeight(int p_rows, int startingPixel, int max_height): int
+    +CalculateTileRect(int row, int column, int startingPixel, int tileWidth, int tileHeight): SDL_FRect
+    +GetMenuTileSize(): int
+    +GetTexture(int cellType): int
+    +GetClosestTile(int x, int y): RendererMap*
+    +getMenuSprites(): vector<spriteSheetTexture*>&
+    +getTiles(): vector<RendererMap*>
+    +getWidth(): int
+    +getHeight(): int
+    +~MapGenerator()
+    -vector<RendererMap*> m_tiles
+    -vector<spriteSheetTexture*> menuSprites
+    -int menuTileSize
+    -int tileWidth, tileHeight
+  }
+  class "Mouse" as Mouse {
+    +getX() const: int
+    +getY() const: int
+    +isPressed() const: bool
+    +getType() const: Uint32
+    +hasStateChanged() const: bool
+    +setPosition(int x, int y): void
+    +setPressed(bool pressed): void
+    +setType(Uint32 type): void
+    +setStateChanged(bool changed): void
+    -int m_x
+    -int m_y
+    -bool m_isPressed
+    -Uint32 m_type
+    -bool m_stateChanged
+  }
+  class "NumberLabel" as NumberLabel {
+    +NumberLabel(int x, int y, int value)
+    +Render(::SDL_Renderer* p_renderer): void
+    +setRender(bool p_render): void
+    +setValue(int value): void
+    +setPosition(int x, int y): void
+    +getWidth() const: int
+    +getHeight() const: int
+    +segmentsFor(char digit): int
+    -int m_x
+    -int m_y
+    -int m_value
+    -static int DIGIT_WIDTH
+    -static int DIGIT_HEIGHT
+    -static int SEGMENT
+    -static int GAP
+  }
+  class "Renderer" as Renderer {
+    +createRenderer(SDL_Window* p_window): void
+    +refreshRenderer(): void
+    +clearRenderer(): void
+    +drawPoint(int x, int y): void
+    +setColor(int r, int g, int b, int a): void
+    +setColor(): void
+    +quit(): void
+    +getRenderer(): SDL_Renderer*
+    -SDL_Renderer* m_renderer
+  }
+  class "TileClickRequest" as TileClickRequest <<struct>> {
+    +int tileNumber
+    +TileClickRequest(int t)
+  }
+  class "RendererMap" as RendererMap {
+    +RendererMap(TileType p_type, spriteSheetTexture* p_texture, spriteSheetTexture* p_infectedtexture, Texture* p_main_texture, int text...
+    +PlaceTurret(int turretType): void
+    +UpgradeTurret(): Renderer::spriteSheetTexture*
+    +getTilePos(): SDL_FRect&
+    +getSpriteTexture(): spriteSheetTexture*
+    +getTurretTextures(): vector<spriteSheetTexture*>&
+    +getCellNumber(): int
+    +Update(float deltatime): void
+    +infect(int damage): void
+    +checkSelectTile(int x, int y): void
+    +bool isInfected
+    +int infectedDamage
+    +TileClickRequest* clickRequest
+    -Texture* m_mainTexture
+    -int m_mainTextureNumb
+    -spriteSheetTexture* m_texture
+    -spriteSheetTexture* m_infectedtexture
+    -vector<spriteSheetTexture*> m_turretTextures
+    -TileType m_type
+    -int m_cellNumber
+    -float currInfectedTime
+    -float maxInfectedTime
+  }
+  class "Rectangle" as Rectangle {
+    +Rectangle(int x, int y, int z, int w)
+    +Rectangle(Math::Vec4<int> vec)
+    +setColor(int r, int g, int b, int a): void
+    +Render(::SDL_Renderer* p_renderer): void
+    +setRender(bool p_render): void
+    +getColor(): Math::Color&
+    -Math::Vec4<int> m_size
+    -Math::Color color
+  }
+  class "spriteSheetTexture" as spriteSheetTexture {
+    +SDL_Rect* m_spriteSheetRect
+    +double m_angle
+    +bool render
+    +setPosition(float x, float y): void
+    +setScale(int w, int h): void
+    +~spriteSheetTexture()
+  }
+  class "Texture" as Texture {
+    +Texture(int x, int y, int w, int h)
+    +Texture(Texture* p_otherText)
+    +loadTexture(string p_path, SDL_Renderer* p_renderer, Math::Vec3<int> p_colorToIgnore): void
+    +useSpriteSheets(int numb, int distance_x, int distance_y, int numb_row_x, int numb_row_y, int width, int height): void
+    +useSpecificSpriteSheet(int pixel_x, int pixel_y, int size_x, int size_y, const Math::Vec4<int>& scaled_position): spriteSheetTexture*
+    +Render(SDL_Renderer* p_renderer): void
+    +setRender(bool p_render): void
+    +destroyTexture(): void
+    +setScale(int w, int h): void
+    +setScale(Math::Vec4<int> scale): void
+    +setPosition(int x, int y): void
+    +getScale(): SDL_Rect
+    +setAlpha(float p_alpha): void
+    +setBlendMode(SDL_BlendMode p_blending): void
+    +setColor(Math::Vec3<int> p_color): void
+    +getSpriteSheet(): vector<spriteSheetTexture*>
+    +setSpecificSpriteRender(int p_spriteNumb, bool p_render): void
+    +deactivateAllSpriteRender(): void
+    +~Texture()
+    -SDL_Texture* m_texture
+    -vector<spriteSheetTexture*> m_spriteSheets
+  }
+  class "Window" as Window {
+    +createWindowRenderer(): void
+    +pollEvents(): bool
+    +render(): void
+    +handleEvent(SDL_Event p_event): void
+    +handleKeyboardDown(SDL_KeyboardEvent p_event): void
+    +handleKeyboardUp(SDL_KeyboardEvent p_event): void
+    +quit(): void
+    +getQuit(): bool
+    +setQuit(bool p_quit): void
+    +selectTexture(int numb, bool p_render): void
+    +addTexture(string p_path, Math::Vec4<int> p_scale): Renderer::Texture*
+    +addRect(Math::Vec4<int> p_scale, Math::Vec4<int> p_color): Renderer::Rectangle*
+    +addNumberLabel(int x, int y, int value): Renderer::NumberLabel*
+    +showRect(int numb): void
+    +resetRenderTargets(): void
+    +Mouse m_mouse
+    +vector<SDL_Keycode> keysPressedDown
+    +vector<SDL_Keycode> keysPressedUp
+    -SDL_Window* m_window
+    -SDL_Event m_event
+    -Renderer m_renderer
+    -vector<Renderer::Texture*> m_Textures
+    -vector<Renderer::Rectangle*> m_recs
+    -vector<Renderer::NumberLabel*> m_numberLabels
+    -vector<Renderer::AbstractRenderable*> m_renderTargets
+    -bool m_quit
+    -freeTextures(): void
+    -freeRects(): void
+    -freeNumberLabels(): void
+    -freeRenderTargets(): void
+  }
+  enum ButtonSprite {
+    BUTTON_SPRITE_MOUSE_OUT
+    BUTTON_SPRITE_MOUSE_OVER_MOTION
+    BUTTON_SPRITE_MOUSE_DOWN
+    BUTTON_SPRITE_MOUSE_UP
+    BUTTON_SPRITE_TOTAL
+  }
+  enum TileType {
+    scenery
+    path
+  }
+  AbstractRenderable <|-- NumberLabel
+  AbstractRenderable <|-- Rectangle
+  AbstractRenderable <|-- Texture
+  Window *-- Mouse
+  Window *-- Renderer
+  Window o-- Texture
+  Window o-- Rectangle
+  Window o-- NumberLabel
+  GameRenderer *-- MapGenerator
+  MapGenerator *-- "1..*" RendererMap
+  Texture *-- "0..*" spriteSheetTexture
+  Button o-- Texture : visual states
+  Button --> ButtonSprite
+  RendererMap --> TileClickRequest : creates on selection
+
+}
+
+@enduml

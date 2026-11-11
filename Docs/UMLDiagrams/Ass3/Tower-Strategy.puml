@@ -1,0 +1,77 @@
+@startuml
+title Tower Targeting Strategy
+
+skinparam classAttributeIconSize 0
+hide empty members
+skinparam linetype ortho
+
+package "App" {
+  class GameManager {
+    -targetButton: Renderer::Button*
+    -targetNameLabel: Renderer::TextLabel*
+    -inspectTargetLabel: Renderer::TextLabel*
+    -currentTowerSelected: Game::Tower*
+    -refreshTargetLabels(tower: Game::Tower*): void
+  }
+}
+
+package "Game" {
+  enum TargetingStrategyType {
+    NearestToTower
+    NearestToExit
+    Strongest
+    Weakest
+  }
+
+  abstract class Tower {
+    +setTargetingStrategy(strategy: unique_ptr<TargetingStrategy>): void
+    +getTargetingStrategy() const: const TargetingStrategy&
+    +cycleTargetingStrategy(): void
+    +Update(deltatime: float, critters: const vector<Critter*>&): void
+    #selectTarget(critters: const vector<Critter*>&) const: Critter*
+    #isInRange(critter: const Critter&) const: bool
+    -targetingStrategy: unique_ptr<TargetingStrategy>
+  }
+
+  class DirectDammageTower <<default: Weakest>>
+  class SlowTower <<default: NearestToExit>>
+  class AoeTower <<default: Strongest>>
+
+  abstract class TargetingStrategy {
+    +chooseTarget(candidates: const vector<Critter*>&, towerRow: int, towerCol: int) const: Critter*
+    +getName() const: const char*
+    +getType() const: TargetingStrategyType
+  }
+
+  class NearestToTowerStrategy
+  class NearestToExitStrategy
+  class StrongestStrategy
+  class WeakestStrategy
+
+  class Critter {
+    +getHitPoints() const: int
+    +getRow() const: int
+    +getCol() const: int
+    +getDistanceToExit() const: float
+  }
+
+  class "makeTargetingStrategy(type)" as Factory <<free function>>
+
+  Tower <|-- DirectDammageTower
+  Tower <|-- SlowTower
+  Tower <|-- AoeTower
+
+  TargetingStrategy <|-- NearestToTowerStrategy
+  TargetingStrategy <|-- NearestToExitStrategy
+  TargetingStrategy <|-- StrongestStrategy
+  TargetingStrategy <|-- WeakestStrategy
+
+  Tower *-- "1" TargetingStrategy : context owns current strategy
+  TargetingStrategy ..> Critter : chooses one of the candidates
+  TargetingStrategy --> TargetingStrategyType : reports type
+  Factory ..> TargetingStrategy : creates
+  Tower ..> Factory : defaults and cycling
+}
+
+GameManager --> "0..1" Tower : cycles strategy of selected tower
+@enduml

@@ -1,0 +1,111 @@
+@startuml
+title Tower Inspection
+
+skinparam classAttributeIconSize 0
+hide empty members
+skinparam linetype ortho
+
+package "App" {
+  class GameManager {
+    -showTowerInspection(tower: Game::Tower*, tileRect: SDL_FRect): void
+    -hideTowerInspection(): void
+    -currentTowerSelected: Game::Tower*
+    -gameRenderer: Renderer::GameRenderer
+    -inspectLevelLabel: Renderer::NumberLabel*
+    -inspectRangeLabel: Renderer::NumberLabel*
+    -inspectPowerLabel: Renderer::NumberLabel*
+    -inspectRateWholeLabel: Renderer::NumberLabel*
+    -inspectRateFractionLabel: Renderer::NumberLabel*
+    -inspectUpgradeLabel: Renderer::PriceLabel*
+    -inspectMaxTexture: Renderer::TextLabel*
+  }
+}
+
+package "Game" {
+  enum TowerType {
+    Direct
+    Slow
+    AoE
+  }
+
+  abstract class Tower {
+    +getCurrentLevel() const: int
+    +getRange() const: int
+    +getPower() const: int
+    +getRateOfFire() const: float
+    +getType() const: TowerType
+    +canUpgrade() const: bool
+    +getUpgradeCost() const: int
+  }
+
+  class DirectDammageTower
+  class SlowTower
+  class AoeTower
+
+  Tower <|-- DirectDammageTower
+  Tower <|-- SlowTower
+  Tower <|-- AoeTower
+  Tower --> TowerType : reports type
+}
+
+package "Renderer" {
+  class GameRenderer {
+    +getInspectDirectTexture(): Texture*
+    +getInspectSlowTexture(): Texture*
+    +getInspectAoeTexture(): Texture*
+    -inspectDirectTexture: InspectPanel*
+    -inspectSlowTexture: InspectPanel*
+    -inspectAoeTexture: InspectPanel*
+  }
+
+  class InspectPanel {
+    +InspectPanel(x, y, w, h, title, accent, rows, decimalPointOffset)
+    +Render(renderer: SDL_Renderer*): void
+    -m_title: string
+    -m_rows: vector<Row>
+    -m_decimalPointOffset: SDL_Point
+  }
+
+  class NumberLabel {
+    +setValue(value: int): void
+    +setPosition(x: int, y: int): void
+    +setRender(render: bool): void
+    -m_value: int
+  }
+
+  class PriceLabel {
+    +setValue(value: int): void
+    +setPosition(x: int, y: int): void
+    +setRender(render: bool): void
+    -m_text: string
+  }
+
+  class TextLabel {
+    +setText(text: string): void
+    +getWidth() const: int
+  }
+
+  class Window {
+    +addInspectPanel(x, y, w, h, title, accent, rows, decimalPointOffset): InspectPanel*
+    +addNumberLabel(x: int, y: int, value: int): NumberLabel*
+    +addPriceLabel(x: int, y: int, value: int): PriceLabel*
+    +addTextLabel(x: int, y: int, text: string, scale: int, color: SDL_Color): TextLabel*
+  }
+
+ 
+}
+
+GameManager *-- "1" GameRenderer : uses for panel rendering
+GameManager --> "0..1" Tower : inspects
+GameManager --> "5" NumberLabel : updates tower statistics
+GameManager --> PriceLabel : shows next upgrade cost
+
+GameRenderer --> "3" InspectPanel : direct, slow, AoE panels
+Window *-- "3" InspectPanel : owns
+Window *-- "5" NumberLabel : owns
+Window *-- PriceLabel : owns
+Window *-- TextLabel : owns
+
+
+
+@enduml

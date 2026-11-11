@@ -1,0 +1,70 @@
+@startuml
+title MapEditor - Frontend
+
+skinparam classAttributeIconSize 0
+hide empty members
+skinparam linetype ortho
+
+package "App" {
+  class MapEditor {
+    +MapEditor(window: Renderer::Window&, inputManager: InputManager*, initialRows: int, initialCols: int)
+    +MainLoop(deltaTime: float): void
+    +HandleMousePress(): void
+    +HandleMouseMove(): void
+    +HandleMouseRelease(): void
+    +HandleKeyboard(window: Renderer::Window&): void
+    +setDimensions(rows: int, cols: int): bool
+    +createRandomMap(): void
+    +clearCustomMap(): void
+    +selectBrush(brush: Game::CellType): void
+    +paintCell(row: int, col: int, type: Game::CellType): void
+    +tryStartGame(): bool
+    +takeMap(): unique_ptr<Game::Map>
+    -window: Renderer::Window&
+    -inputManager: InputManager*
+    -map: unique_ptr<Game::Map>
+    -canvas: unique_ptr<EditorCanvas>
+    -syncObserver: unique_ptr<EditorMapObserver>
+    -loggingObserver: unique_ptr<Game::MapLoggingObserver>
+    -tileSheetTexture: Renderer::Texture*
+    -validationStatus: Game::Map::ValidationStatus
+    -onCorrectPathMask: vector<bool>
+  }
+
+  class "MapEditor::EditorCanvas" as EditorCanvas {
+    +Render(renderer: SDL_Renderer*): void
+    +setRender(render: bool): void
+    -editor: MapEditor&
+  }
+
+  class "MapEditor::EditorMapObserver" as EditorMapObserver {
+    +update(map: const Game::Map&): void
+    -owner: MapEditor&
+  }
+
+  note right of EditorMapObserver
+    On each map editor change (ex: entry cell placed), 
+    update() will refresh validation status and the path preview.
+  end note
+
+  class InputManager {
+    +AttachClickEvent(callback: function<void()>): void
+    +AttachMoveEvent(callback: function<void()>): void
+    +AttachReleaseEvent(callback: function<void()>): void
+  }
+}
+
+
+
+MapEditor *-- "1" EditorCanvas : owns render view
+MapEditor *-- "1" EditorMapObserver : owns sync observer
+MapEditor --> "1" Window : references; attaches canvas
+MapEditor --> "0..1" InputManager : registers mouse callbacks
+MapEditor ..> Texture : uses window-owned tile sheet
+EditorCanvas --> MapEditor : renders editor state
+Window *-- Texture : owns
+
+
+
+
+@enduml

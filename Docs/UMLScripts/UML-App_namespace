@@ -1,0 +1,174 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty members
+skinparam linetype ortho
+
+package "App" {
+  class "CritterBillingObserver" as CritterBillingObserver {
+    +CritterBillingObserver(Game::Critter& critter, Player& player)
+    +update(const Game::Critter& critter): void
+    -Player& player
+  }
+  class "CritterRenderSyncObserver" as CritterRenderSyncObserver {
+    +CritterRenderSyncObserver(Game::Critter& critter)
+    +update(const Game::Critter& critter): void
+  }
+  class "GameManager" as GameManager {
+    +GameManager(Renderer::Window& window, InputManager* p_inputManager)
+    +HandleMousePress(): void
+    +HandleMouseMove(): void
+    +HandleMouseRelease(): void
+    +canPlaceTurret(): bool
+    +SpawnWalker(Renderer::Window& window): void
+    +SpawnSpeed(Renderer::Window& window): void
+    +SpawnBoss(Renderer::Window& window): void
+    +SpawnBullets(Renderer::Window& window): void
+    +SpawnButtons(): void
+    +OnClick(): void
+    +OnMouseMove(): void
+    +MainLoop(float deltaTime): void
+    +SpawnBullet(): void
+    +findValidBullet(): Game::Bullet*
+    +~GameManager()
+    +requestedActions: vector<function<void()>> {static}
+    -Renderer::GameRenderer gameRenderer
+    -InputManager* inputManager
+    -WaveManager* waveManager
+    -bool b_clicked
+    -Renderer::Mouse* mouse
+    -int currSpritePressed
+    -bool isHoldingTurret
+    -Game::Map* map
+    -Game::Tower* currentTowerSelected
+    -vector<Game::Tower*> towers
+    -vector<Game::Critter*> critters
+    -vector<Game::Bullet*> bullets
+    -Player player
+    -Renderer::Button* upgradeButton
+    -Renderer::Button* cancelButton
+    -unique_ptr<MapObserverSet> mapObserverSet
+    -vector<unique_ptr<TowerObserverSet>> towerObserverSets
+    -vector<unique_ptr<CritterObserverSet>> critterObserverSets
+    -unique_ptr<PlayerRenderObserver> playerObserver
+  }
+  class "MapObserverSet" as MapObserverSet <<struct>> {
+    +Game::MapLoggingObserver logging
+    +App::MapRenderSyncObserver rendering
+    +MapObserverSet(Game::Map& map, Renderer::GameRenderer& gameRenderer)
+  }
+  class "TowerObserverSet" as TowerObserverSet <<struct>> {
+    +Game::Tower* subject
+    +Game::TowerLoggingObserver logging
+    +App::TowerBillingObserver billing
+    +App::TowerRenderSyncObserver rendering
+    +TowerObserverSet( Game::Tower& tower, Player& player, Renderer::GameRenderer& gameRenderer)
+  }
+  class "CritterObserverSet" as CritterObserverSet <<struct>> {
+    +Game::CritterLoggingObserver logging
+    +App::CritterBillingObserver billing
+    +CritterRenderSyncObserver render
+    +CritterObserverSet(Game::Critter& critter, Player& player)
+  }
+  class "InputManager" as InputManager {
+    +InputManager()
+    +pollEvents(Renderer::Window& window): bool
+    +manageMouse(Renderer::Window& window): void
+    +AttachClickEvent(function<void()>): void
+    +AttachReleaseEvent(function<void()>): void
+    +AttachMoveEvent(function<void()>): void
+  }
+  class "MapRenderSyncObserver" as MapRenderSyncObserver {
+    +MapRenderSyncObserver(Game::Map& map, Renderer::GameRenderer& gameRenderer)
+    +update(const Game::Map& map): void
+    -Renderer::GameRenderer& gameRenderer
+  }
+  class "Player" as Player {
+    +Player()
+    +ChangeCoins(float diff): void
+    +GetCoins() const: float
+    -float coins
+  }
+  class "PlayerRenderObserver" as PlayerRenderObserver {
+    +PlayerRenderObserver(Player& player, Renderer::Window& window)
+    +update(const Player& player): void
+    -Renderer::NumberLabel* label
+    -placeLabel(): void
+  }
+  class "TowerBillingObserver" as TowerBillingObserver {
+    +TowerBillingObserver(Game::Tower& tower, Player& player)
+    +update(const Game::Tower& tower): void
+    -Player& player
+  }
+  class "TowerRenderSyncObserver" as TowerRenderSyncObserver {
+    +TowerRenderSyncObserver(Game::Tower& tower, Renderer::GameRenderer& gameRenderer)
+    +update(const Game::Tower& tower): void
+    +getLastUpgradedTexture() const: Renderer::spriteSheetTexture*
+    -Renderer::GameRenderer& gameRenderer
+    -Renderer::spriteSheetTexture* lastUpgradedTexture
+  }
+  class "WaveStats" as WaveStats <<struct>> {
+    +int amountWalker
+    +int amountSpeedy
+    +int amountBoss
+  }
+  class "WaveManager" as WaveManager {
+    +WaveManager(vector<Game::Critter*> p_critters)
+    +IncreaseWave(): void
+    +GetWaveStats(): WaveStats
+    +Update(float deltatime): void
+    +ShouldEndWave(): void
+    +CheckWaveEnd(): bool
+    +SpawnCritter(): void
+    +GetRandomNumber(int a, int b): int
+    -int currWave
+    -vector<WaveStats> stats
+    -vector<Game::Critter*> critters
+    -float currWaitingTime
+    -float maxWaitingTime
+    -WaveState waveState
+    -float critterSpawnTime
+    -float currSpawnTime
+    -int amountCritterSpawned
+    -int amountWalkerSpawned
+    -int amountSpeedSpawned
+    -int amountBossSpawned
+  }
+  class "Application" as Application {
+    +Application()
+    +mainLoop(): void
+    +~Application()
+    -Renderer::Window window
+    -InputManager* inputManager
+    -GameManager* gameManager
+  }
+  enum WaveState {
+    waiting
+    spawning
+    playing
+  }
+  Observer <|-- CritterBillingObserver
+  Observer <|-- CritterRenderSyncObserver
+  Observer <|-- MapRenderSyncObserver
+  Observable <|-- Player
+  Observer <|-- PlayerRenderObserver
+  Observer <|-- TowerBillingObserver
+  Observer <|-- TowerRenderSyncObserver
+  Application *-- InputManager
+  Application *-- GameManager
+  GameManager *-- Player
+  GameManager *-- WaveManager
+  GameManager *-- "MapObserverSet"
+  GameManager *-- "TowerObserverSet"
+  GameManager *-- "CritterObserverSet"
+  GameManager *-- PlayerRenderObserver
+  WaveManager *-- WaveStats
+  WaveManager --> WaveState
+  CritterBillingObserver --> Player : updates coins
+  TowerBillingObserver --> Player : updates coins
+  MapRenderSyncObserver --> "Renderer::GameRenderer" : synchronizes
+  TowerRenderSyncObserver --> "Renderer::GameRenderer" : synchronizes
+  PlayerRenderObserver --> "Renderer::NumberLabel" : displays coins
+
+}
+
+@enduml

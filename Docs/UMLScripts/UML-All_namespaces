@@ -1,0 +1,104 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+package "App" {
+  class CritterBillingObserver
+  class CritterRenderSyncObserver
+  class GameManager
+  class InputManager
+  class MapRenderSyncObserver
+  class Player
+  class PlayerRenderObserver
+  class TowerBillingObserver
+  class TowerRenderSyncObserver
+  class WaveStats
+  class WaveManager
+  class Application
+}
+package "Game" {
+  class AoeTower
+  class BossCritter
+  class BulletRequest
+  class HitRequest
+  class Bullet
+  abstract class Critter
+  class CritterType
+  class CritterFactory
+  class CritterLoggingObserver
+  class DirectDammageTower
+  class CellType
+  class Cell
+  class Map
+  class MapLoggingObserver
+  class Observable
+  class Observer
+  class SlowTower
+  class SpeedyCritter
+  class TowerLevel
+  abstract class Tower
+  class TowerLoggingObserver
+  class WalkerCritter
+}
+package "Renderer" {
+  abstract class AbstractRenderable
+  class Button
+  class Event
+  class GameRenderer
+  class MapGenerator
+  class Mouse
+  class NumberLabel
+  class Renderer
+  class TileClickRequest
+  class RendererMap
+  class Rectangle
+  class spriteSheetTexture
+  class Texture
+  class Window
+}
+package "Math" {
+  class Color
+  class Vector2D
+  class Vec3
+  class Vec4
+}
+
+Observer <|-- CritterBillingObserver
+Observer <|-- CritterRenderSyncObserver
+Observer <|-- MapRenderSyncObserver
+Observable <|-- Player
+Observer <|-- PlayerRenderObserver
+Observer <|-- TowerBillingObserver
+Observer <|-- TowerRenderSyncObserver
+Tower <|-- AoeTower
+Critter <|-- BossCritter
+Observable <|-- Critter
+Observer <|-- CritterLoggingObserver
+Tower <|-- DirectDammageTower
+Observable <|-- Map
+Observer <|-- MapLoggingObserver
+Tower <|-- SlowTower
+Critter <|-- SpeedyCritter
+Observable <|-- Tower
+Observer <|-- TowerLoggingObserver
+Critter <|-- WalkerCritter
+AbstractRenderable <|-- NumberLabel
+AbstractRenderable <|-- Rectangle
+AbstractRenderable <|-- Texture
+Application *-- GameManager
+Application *-- InputManager
+GameManager *-- WaveManager
+GameManager *-- Player
+GameManager --> Map
+GameManager --> GameRenderer
+GameRenderer *-- MapGenerator
+MapGenerator *-- RendererMap
+CritterFactory ..> Critter : creates
+Window *-- Mouse
+Texture *-- spriteSheetTexture
+Map *-- Cell
+Tower --> BulletRequest
+Bullet --> HitRequest
+Vec4 ..> Vec3 : conversion
+@enduml

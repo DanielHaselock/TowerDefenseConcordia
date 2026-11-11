@@ -1,0 +1,146 @@
+/**
+ * @mainpage TowerDefense
+ *
+ * @section intro_sec Overview
+ *
+ * TowerDefense is a COMP345 assignment implementing the classic
+ * tower-defense genre: critters walk a fixed path across a grid, the
+ * player places and upgrades towers alongside that path to destroy them
+ * before they reach the exit, and losing critters at the exit costs the
+ * player coins. This page summarizes the genre rules the project is
+ * based on and the software design used to implement them; browse the
+ * *Classes* and *Files* tabs for the full API reference.
+ *
+ * @section rules_sec Game Rules
+ *
+ * Tower defense is a well-established strategy game subgenre where the
+ * player defends a path or area from waves of enemies by building
+ * stationary, upgradeable defenses rather than controlling units
+ * directly (see the Tower Defense genre overview at
+ * https://en.wikipedia.org/wiki/Tower_defense). This project implements
+ * the genre's core rules as follows:
+ *
+ * - **Map and path.** The map is a grid with one entry cell and one exit
+ *   cell; a connected path between them is generated and validated with
+ *   a breadth-first search (see Game::Map::isValid()). Critters always
+ *   follow this path; towers may only be built on the remaining
+ *   "scenery" cells beside it. A map editor lets the user create custom
+ *   maps by choosing the grid dimensions (for example, 8x8, 9x12),
+ *   designating the entry and exit cells, and assigning cells to the path
+ *   or scenery.
+ * - **Critters.** Each wave spawns critters (Game::WalkerCritter,
+ *   Game::SpeedyCritter, Game::BossCritter) that walk from entry to exit
+ *   at their own speed and with their own hit points. A critter that
+ *   reaches the exit without being killed reduces the player's HP by 1.
+ *   While it remains on the exit cell, it also steals coins continuously:
+ *   each game tick deducts a fraction based on its strength and the time
+ *   elapsed (Game::Critter::reachedEnd,
+ *   App::CritterBillingObserver).
+ * - **Towers.** The player buys towers (Game::DirectDammageTower,
+ *   Game::AoeTower, Game::SlowTower) with coins and places them on
+ *   scenery cells. A tower automatically targets and fires at critters
+ *   within its range (Game::Tower::Update()); when several critters are
+ *   in range, its Game::TargetingStrategy decides which one to shoot
+ *   (nearest to the tower, nearest to the exit, strongest or weakest).
+ *   The player selects a tower and presses the TARGET button to cycle
+ *   its strategy; the current one is shown under the button and on the
+ *   tower's inspection panel.
+ *   A tower can be upgraded through further levels for more range,
+ *   power and rate of fire, or sold back for a partial refund.
+ * - **Economy and progression.** The player starts with a fixed coin
+ *   balance (App::Player, `STARTING_COINS`). Killing a critter rewards
+ *   coins; later waves field more, stronger and faster critters, which
+ *   is the central escalating-difficulty loop common to the genre.
+ * - **Winning and losing.** The player wins by surviving all five waves
+ *   without their HP reaching 0 (App::WaveManager, `WIN_WAVE_COUNT`).
+ *   The game is lost when the player's HP reaches 0.
+ *
+ * This genre has no single official rulebook; the specific numbers used
+ * here (starting coins, pool sizes, wave composition, tower costs and
+ * stats) are this project's own balancing choices layered on top of the
+ * genre conventions cited above, and are documented on the relevant
+ * classes (Game::Tower, App::WaveManager, Game::Critter and their
+ * subclasses).
+ *
+ * @section design_sec Design
+ *
+ * The codebase is split into four namespaces with a one-way dependency
+ * chain (App depends on Game and Renderer, which both depend on
+ * Math):
+ *
+ * - **Math** - generic vector/color primitives (Math::Vec3, Math::Vec4,
+ *   Math::Color) used wherever positions, sizes or colors are passed
+ *   around.
+ * - **Renderer** - a thin SDL2 wrapper with no gameplay knowledge: it
+ *   owns the window and renderer (Renderer::Window, Renderer::Renderer),
+ *   draws textures/sprite-sheets and solid shapes (Renderer::Texture,
+ *   Renderer::Rectangle), and renders the map grid and UI buttons
+ *   (Renderer::RendererMap, Renderer::MapGenerator, Renderer::Button).
+ *   Renderer::GameRenderer is the facade Game code talks to instead of
+ *   touching these pieces directly.
+ * - **Game** - all gameplay rules and state, independent of how they are
+ *   drawn or how input is captured.
+ * - **App** - the executable layer: App::Application owns the window,
+ *   the input manager and the game manager, and drives the main loop.
+ *
+ * Within Game, a few recurring patterns implement the rules above:
+ *
+ * - **Polymorphic critters/towers.** Game::Critter and Game::Tower are
+ *   abstract base classes; each concrete critter/tower type only
+ *   overrides the handful of virtual methods that actually differ
+ *   between types (e.g. Game::Critter::setLevel(), Game::Tower::shoot()),
+ *   so adding a new critter or tower type means implementing one small
+ *   class rather than touching shared logic. Game::CritterFactory
+ *   centralizes construction so callers don't need to know the concrete
+ *   type.
+ * - **Strategy (tower targeting).** A tower works in two steps: it first
+ *   collects the living critters within range (identical for every
+ *   tower, done by Game::Tower::selectTarget()), then asks its
+ *   Game::TargetingStrategy to choose one of them. Each rule is a small
+ *   stateless subclass (Game::NearestToTowerStrategy,
+ *   Game::NearestToExitStrategy, Game::StrongestStrategy,
+ *   Game::WeakestStrategy) built by Game::makeTargetingStrategy(), and a
+ *   tower can swap its strategy at any time with
+ *   Game::Tower::setTargetingStrategy() or
+ *   Game::Tower::cycleTargetingStrategy() without any other tower code
+ *   changing. Each tower type starts with its own default (direct:
+ *   weakest, slow: nearest to exit, AoE: strongest). Ties go to the first
+ *   critter in the candidate list, and "nearest to exit" uses
+ *   Game::Critter::getDistanceToExit(), the distance still left to walk
+ *   along the path. Changing the strategy is not an upgrade, so it does
+ *   not notify the tower's observers.
+ *
+ *   The four rules, in the order the TARGET button cycles them:
+ *   - **Near Tower** - the critter closest to the tower (grid distance,
+ *     the same metric as the range check).
+ *   - **Near Exit** - the critter with the least path left to walk.
+ *   - **Strongest** - the critter with the most hit points left.
+ *   - **Weakest** - the critter with the fewest hit points left.
+ *
+ *   "Strongest" and "weakest" use the critter's *current* hit points, the
+ *   usual tower defense convention (for example the Strong / First / Last
+ *   / Close targeting options in Bloons TD). The class diagram is in
+ *   `Docs/UMLDiagrams/Ass3/Tower-Strategy.puml`.
+ * - **Object pooling.** Critters and bullets are pre-allocated once by
+ *   App::GameManager (`SpawnWalker`/`SpawnSpeed`/`SpawnBoss`,
+ *   `SpawnBullets`) and simply activated/deactivated over the game's
+ *   lifetime (Game::Critter::setIsActive(), Game::Bullet::GetActive())
+ *   instead of being allocated and freed every wave/shot.
+ * - **State machine wave progression.** App::WaveManager drives a
+ *   small waiting -> spawning -> playing state machine (App::WaveState)
+ *   that paces critters into the map and detects when a wave has been
+ *   cleared, decoupling "when to spawn what" from the critters
+ *   themselves.
+ * - **Callback-driven input.** App::InputManager exposes
+ *   `Attach*Event()` registration methods instead of exposing raw SDL
+ *   state; App::GameManager attaches its own handlers
+ *   (`HandleMousePress`/`HandleMouseMove`/`HandleMouseRelease`) so input
+ *   handling and gameplay logic stay decoupled.
+ * - **Request/effect objects for combat.** Rather than a tower directly
+ *   mutating a critter, Game::Tower::shoot() fills in a
+ *   Game::BulletRequest (carrying damage, target and an effect code);
+ *   App::GameManager turns that into a pooled Game::Bullet, which on
+ *   impact applies its effect (plain damage, an area-of-effect
+ *   Game::HitRequest, or a slow via Game::Critter::halfSpeed()) depending
+ *   on the tower type that fired it.
+ */

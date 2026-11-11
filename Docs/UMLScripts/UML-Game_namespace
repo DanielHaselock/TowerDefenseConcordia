@@ -1,0 +1,206 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty members
+skinparam linetype ortho
+
+package "Game" {
+  class "AoeTower" as AoeTower {
+    +AoeTower(int row, int col, Renderer::spriteSheetTexture* p_texture)
+    +TryUpgrade(int amountOfMoney): int
+    #shoot(int initalX, int initialY, int angle, Critter& target): void
+  }
+  class "BossCritter" as BossCritter {
+    +BossCritter(int level, int spawnRow, int spawnCol, Renderer::spriteSheetTexture* texture)
+    +getType() const: string
+    +clone() const: unique_ptr<Critter>
+    +Update(float deltaTime, const vector<Renderer::RendererMap*>& m_tiles): void
+    +setLevel(int p_level): void
+  }
+  abstract class "Critter" as Critter {
+    +Critter(int hitPoints, int strength, int speed, int level, int reward, int spawnRow, int spawnCol, Renderer::spriteSheetTexture* texture)
+    +setPath(vector<Renderer::RendererMap*> m_tiles, const vector<int>& p_correctPath, int columns): void
+    +takeDamage(int amount): void
+    +isDead() const: bool
+    +Update(float deltaTime, const vector<Renderer::RendererMap*>& m_tiles): void
+    +getType() const: string
+    +clone() const: unique_ptr<Critter>
+    +getHitPoints() const: int
+    +getDistanceToExit() const: float
+    +setLevel(int p_level): void
+    -bool isActive
+    #int hitPoints
+    #int maxHitPoints
+    #int strength
+    #float speed
+    #int baseSpeed
+    #int level
+    #int reward
+    #int row
+    #int col
+    #float pixelPosX
+    #float pixelPosY
+    #float destinationX
+    #float destinationY
+    #vector<pair<int, int>> positions
+    #vector<int> m_correctPath
+    #int m_columns
+    #int currentPos
+  }
+  class "CritterFactory" as CritterFactory {
+    +create(CritterType type, int level): unique_ptr<Critter>
+  }
+  class "CritterLoggingObserver" as CritterLoggingObserver {
+    +CritterLoggingObserver(Critter& critter)
+    +update(const Critter& critter): void
+    -int lastRow
+    -int lastCol
+    -int lastHitPoints
+    -bool lastActive
+  }
+  class "DirectDammageTower" as DirectDammageTower {
+    +DirectDammageTower(int row, int col, Renderer::spriteSheetTexture* p_texture)
+    +TryUpgrade(int amountOfMoney): int
+    #shoot(int initalX, int initialY, int angle, Critter& target): void
+  }
+  class "Map" as Map {
+    +Map(int rows, int cols)
+    +getRows() const: int
+    +getCols() const: int
+    +getCell(int row, int column) const: const Cell &
+    +getCells(): vector<Cell*>
+    +getEntryCell(): pair<int, int>
+    +getExitCell(): pair<int, int>
+    +generateRandomMap(): const vector<vector<Cell>> &
+    +display() const: void
+    +getCorrectPath(): vector<int>&
+    +placeTower(Tower* tower, int row, int column): bool
+    +removeTower(int row, int column): bool
+    -setCellType(int row, int column, CellType type): void
+    -checkCoordinates(int row, int column) const: void
+    -findEntryAndExit(pair<int, int> &entry, pair<int, int> &exit): bool
+    -isValid(): bool
+    -int rows
+    -int cols
+    -vector<vector<Cell>> cells
+    -vector<int> correctPath
+  }
+  class "MapLoggingObserver" as MapLoggingObserver {
+    +MapLoggingObserver(Map& map)
+    +update(const Map& map): void
+  }
+  class "Observable<T>" as Observable {
+    +~Observable()
+    +attach(Observer<Subject>* observer): void
+    +detach(Observer<Subject>* observer): void
+    #notify(): void
+    -vector<Observer<Subject>*> observers
+  }
+  class "Observer<T>" as Observer {
+    +Observer(Subject& subject)
+    +~Observer()
+    +update(const Subject& subject): void
+    -Subject& subject
+  }
+  class "SlowTower" as SlowTower {
+    +SlowTower(int row, int col, Renderer::spriteSheetTexture* p_texture)
+    +TryUpgrade(int amountOfMoney): int
+    #shoot(int initalX, int initialY, int angle, Critter& target): void
+  }
+  class "SpeedyCritter" as SpeedyCritter {
+    +SpeedyCritter(int level, int spawnRow, int spawnCol, Renderer::spriteSheetTexture* texture)
+    +getType() const: string
+    +clone() const: unique_ptr<Critter>
+    +Update(float deltaTime, const vector<Renderer::RendererMap*>& m_tiles): void
+    +setLevel(int p_level): void
+  }
+  class "TowerLevel" as TowerLevel <<struct>> {
+    +int level
+    +int levelCost
+    +int range
+    +int power
+    +float rateOfFire
+    +float specialMultiplier
+    +TowerLevel(int lvl, int cost, int range, int power, float rateOfFire, float specialMultiplier)
+  }
+  abstract class "Tower" as Tower {
+    +Tower(int row, int col, int cost, int currLvl, Renderer::spriteSheetTexture* p_texture)
+    +getRefundValue(int wave) const: int
+    +getRange() const: int
+    +getPower() const: int
+    +getRateOfFire() const: float
+    +Update(float deltatime, const vector<Critter*>& critters): void
+    +TryUpgrade(int amountOfMoney): int
+    +setTargetingStrategy(unique_ptr<TargetingStrategy> strategy): void
+    +getTargetingStrategy() const: const TargetingStrategy&
+    +cycleTargetingStrategy(): void
+    #selectTarget(const vector<Critter*>& critters) const: Critter*
+    #shoot(int initalX, int initialY, int angle, Critter& target): void
+    #int row
+    #int col
+    #int buyingCost
+    #vector<TowerLevel> levels
+    #int currentLevel
+    #float lastShotTime
+    #Renderer::spriteSheetTexture* m_texture
+    #double textureAngle
+    #double baseTurnSpeed
+    #unique_ptr<TargetingStrategy> targetingStrategy
+    #bool canShoot
+  }
+  abstract class "TargetingStrategy" as TargetingStrategy {
+    +chooseTarget(const vector<Critter*>& candidates, int towerRow, int towerCol) const: Critter*
+    +getName() const: const char*
+    +getType() const: TargetingStrategyType
+  }
+  class "NearestToTowerStrategy" as NearestToTowerStrategy
+  class "NearestToExitStrategy" as NearestToExitStrategy
+  class "StrongestStrategy" as StrongestStrategy
+  class "WeakestStrategy" as WeakestStrategy
+  enum TargetingStrategyType {
+    NearestToTower
+    NearestToExit
+    Strongest
+    Weakest
+  }
+  class "TowerLoggingObserver" as TowerLoggingObserver {
+    +TowerLoggingObserver(Tower& tower)
+    +update(const Tower& tower): void
+  }
+  class "WalkerCritter" as WalkerCritter {
+    +WalkerCritter(int level, int spawnRow, int spawnCol, Renderer::spriteSheetTexture* texture)
+    +getType() const: string
+    +clone() const: unique_ptr<Critter>
+    +Update(float deltaTime, const vector<Renderer::RendererMap*>& m_tiles): void
+    +setLevel(int p_level): void
+  }
+  enum CritterType {
+    Walker
+    Speedy
+    Boss
+  }
+  Tower <|-- AoeTower
+  Critter <|-- BossCritter
+  Observable <|-- Critter
+  Observer <|-- CritterLoggingObserver
+  Tower <|-- DirectDammageTower
+  Observable <|-- Map
+  Observer <|-- MapLoggingObserver
+  Tower <|-- SlowTower
+  Critter <|-- SpeedyCritter
+  Observable <|-- Tower
+  Observer <|-- TowerLoggingObserver
+  Critter <|-- WalkerCritter
+  Tower *-- TowerLevel
+  TargetingStrategy <|-- NearestToTowerStrategy
+  TargetingStrategy <|-- NearestToExitStrategy
+  TargetingStrategy <|-- StrongestStrategy
+  TargetingStrategy <|-- WeakestStrategy
+  Tower *-- TargetingStrategy : current strategy
+  TargetingStrategy --> TargetingStrategyType
+  CritterFactory ..> Critter : creates
+  CritterFactory --> CritterType
+  Observable ..> Observer : notifies
+
+}
+
+@enduml
